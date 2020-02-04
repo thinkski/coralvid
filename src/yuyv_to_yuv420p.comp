@@ -1,0 +1,113 @@
+#version 310 es
+
+/**
+ * OpenGL ES compute shader for YUYV (packed) to YUV420p (planar) conversion.
+ *
+ * Some H.264 decoders, such as Apple Quicktime's implementation, only
+ * support the YUV420p pixel format. However, some CMOS sensor drivers only
+ * support the YUYV pixel format. Thus, a packed-to-planar pixel format
+ * converter is needed. As this this converter touches each pixel of each
+ * frame, it must be efficient.
+ */
+
+layout (std430) buffer;
+layout (local_size_x = 1, local_size_y = 1) in;
+layout (binding = 0) readonly buffer Input {
+	uint yuyv[2 * 1280 * 720 / 4];
+} src;
+layout (binding = 1) writeonly buffer Output {
+	uint y[1280 * 720 / 4];
+	uint u[ 640 * 360 / 4];
+	uint v[ 640 * 360 / 4];
+} dst;
+
+void main(void) {
+	uint x = gl_WorkGroupID.x;
+	uint y = gl_WorkGroupID.y;
+
+	/* memoize byte values */
+	uint aa = src.yuyv[640U *  2U * y       + 8U * x + 0U];
+	uint ab = src.yuyv[640U *  2U * y       + 8U * x + 1U];
+	uint ac = src.yuyv[640U *  2U * y       + 8U * x + 2U];
+	uint ad = src.yuyv[640U *  2U * y       + 8U * x + 3U];
+	uint ae = src.yuyv[640U *  2U * y       + 8U * x + 4U];
+	uint af = src.yuyv[640U *  2U * y       + 8U * x + 5U];
+	uint ag = src.yuyv[640U *  2U * y       + 8U * x + 6U];
+	uint ah = src.yuyv[640U *  2U * y       + 8U * x + 7U];
+	uint ba = src.yuyv[640U * (2U * y + 1U) + 8U * x + 0U];
+	uint bb = src.yuyv[640U * (2U * y + 1U) + 8U * x + 1U];
+	uint bc = src.yuyv[640U * (2U * y + 1U) + 8U * x + 2U];
+	uint bd = src.yuyv[640U * (2U * y + 1U) + 8U * x + 3U];
+	uint be = src.yuyv[640U * (2U * y + 1U) + 8U * x + 4U];
+	uint bf = src.yuyv[640U * (2U * y + 1U) + 8U * x + 5U];
+	uint bg = src.yuyv[640U * (2U * y + 1U) + 8U * x + 6U];
+	uint bh = src.yuyv[640U * (2U * y + 1U) + 8U * x + 7U];
+
+	/* first luma row */
+	dst.y[(1280U / 4U) * 2U * y + 4U * x] =
+		bitfieldExtract(aa,  0, 8)       |
+		bitfieldExtract(aa, 16, 8) <<  8 |
+		bitfieldExtract(ab,  0, 8) << 16 |
+		bitfieldExtract(ab, 16, 8) << 24;
+	dst.y[(1280U / 4U) * 2U * y + (4U * x + 1U)] =
+		bitfieldExtract(ac,  0, 8)       |
+		bitfieldExtract(ac, 16, 8) <<  8 |
+		bitfieldExtract(ad,  0, 8) << 16 |
+		bitfieldExtract(ad, 16, 8) << 24;
+	dst.y[(1280U / 4U) * 2U * y + (4U * x + 2U)] =
+		bitfieldExtract(ae,  0, 8)       |
+		bitfieldExtract(ae, 16, 8) <<  8 |
+		bitfieldExtract(af,  0, 8) << 16 |
+		bitfieldExtract(af, 16, 8) << 24;
+	dst.y[(1280U / 4U) * 2U * y + (4U * x + 3U)] =
+		bitfieldExtract(ag,  0, 8)       |
+		bitfieldExtract(ag, 16, 8) <<  8 |
+		bitfieldExtract(ah,  0, 8) << 16 |
+		bitfieldExtract(ah, 16, 8) << 24;
+
+	/* second luma row */
+	dst.y[(1280U / 4U) * (2U * y + 1U) + 4U * x] =
+		bitfieldExtract(ba,  0, 8)       |
+		bitfieldExtract(ba, 16, 8) << 8  |
+		bitfieldExtract(bb,  0, 8) << 16 |
+		bitfieldExtract(bb, 16, 8) << 24;
+	dst.y[(1280U / 4U) * (2U * y + 1U) + (4U * x + 1U)] =
+		bitfieldExtract(bc,  0, 8)       |
+		bitfieldExtract(bc, 16, 8) << 8  |
+		bitfieldExtract(bd,  0, 8) << 16 |
+		bitfieldExtract(bd, 16, 8) << 24;
+	dst.y[(1280U / 4U) * (2U * y + 1U) + (4U * x + 2U)] =
+		bitfieldExtract(be,  0, 8)       |
+		bitfieldExtract(be, 16, 8) << 8  |
+		bitfieldExtract(bf,  0, 8) << 16 |
+		bitfieldExtract(bf, 16, 8) << 24;
+	dst.y[(1280U / 4U) * (2U * y + 1U) + (4U * x + 3U)] =
+		bitfieldExtract(bg,  0, 8)       |
+		bitfieldExtract(bg, 16, 8) << 8  |
+		bitfieldExtract(bh,  0, 8) << 16 |
+		bitfieldExtract(bh, 16, 8) << 24;
+
+	/* u-chroma*/
+	dst.u[(640U / 4U) * y + (2U * x)] =
+		bitfieldExtract(aa,  8, 8)       |
+		bitfieldExtract(ab,  8, 8) << 8  |
+		bitfieldExtract(ac,  8, 8) << 16 |
+		bitfieldExtract(ad,  8, 8) << 24;
+	dst.u[(640U / 4U) * y + (2U * x + 1U)] =
+		bitfieldExtract(ae,  8, 8)       |
+		bitfieldExtract(af,  8, 8) << 8  |
+		bitfieldExtract(ag,  8, 8) << 16 |
+		bitfieldExtract(ah,  8, 8) << 24;
+
+	/* v-chroma*/
+	dst.v[(640U / 4U) * y + (2U * x)] =
+		bitfieldExtract(aa, 24, 8)       |
+		bitfieldExtract(ab, 24, 8) << 8  |
+		bitfieldExtract(ac, 24, 8) << 16 |
+		bitfieldExtract(ad, 24, 8) << 24;
+	dst.v[(640U / 4U) * y + (2U * x + 1U)] =
+		bitfieldExtract(ae, 24, 8)       |
+		bitfieldExtract(af, 24, 8) << 8  |
+		bitfieldExtract(ag, 24, 8) << 16 |
+		bitfieldExtract(ah, 24, 8) << 24;
+}
