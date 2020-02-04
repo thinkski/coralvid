@@ -8,12 +8,13 @@ module.
 
 Build:
 ```
-mkdir build
-cd build
-cmake -DCMAKE_BUILD_TYPE=Release ..
-make
-sudo make install
+mendel@edgetpu:~/coralvid$ mkdir build
+mendel@edgetpu:~/coralvid$ cd build
+mendel@edgetpu:~/coralvid/build$ cmake -DCMAKE_BUILD_TYPE=Release ..
+mendel@edgetpu:~/coralvid/build$ make
+mendel@edgetpu:~/coralvid/build$ sudo make install
 ```
+The above is for on-target builds. Cross-compilation is left as an exercise to the reader.
 
 Print usage:
 ```
@@ -40,5 +41,5 @@ Options:
 
 Capture sample:
 ```
-coralvid -o sample.264
+mendel@edgetpu:~$ coralvid -o sample.264
 ```
