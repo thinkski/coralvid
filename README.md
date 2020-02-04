@@ -6,8 +6,6 @@ module.
 
 ## Quickstart
 
-Build, then capture a 10 second H.264 video clip:
-
 Build:
 ```
 mkdir build
